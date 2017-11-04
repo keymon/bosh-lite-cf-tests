@@ -1,4 +1,4 @@
-deploy-bosh: bosh-create-env configure
+deploy-bosh: bosh-create-env bosh-configure
 
 generated/bosh-manifest.yml: interpolate-bosh-manifest
 interpolate-bosh-manifest: ## interpolate the bosh manifest
@@ -28,8 +28,14 @@ interpolate-bosh-manifest: ## interpolate the bosh manifest
 	bosh int ./generated/bosh-creds.yml --path /jumpbox_ssh/private_key > generated/bosh-lite.id_rsa
 
 bosh-create-env: generated/bosh-manifest.yml ## Start a bosh-lite environment on virtualbox
-	bosh create-env \
+	bosh -n create-env \
 		--state ./state.json \
+		generated/bosh-manifest.yml
+
+bosh-recreate-env: generated/bosh-manifest.yml ## Restart a bosh-lite environment on virtualbox
+	bosh -n create-env \
+		--state ./state.json \
+		--recreate \
 		generated/bosh-manifest.yml
 
 load_bosh_creds: ## Helper to load the bosh credentials into variables
@@ -40,8 +46,8 @@ load_bosh_creds: ## Helper to load the bosh credentials into variables
 ssh-bosh: ## SSH into the BOSH vm
 	ssh -i ./generated/bosh-lite.id_rsa jumpbox@192.168.50.6
 
-upload-stemcell: ## Upload latest stemcell to bosh
-	bosh -e vbox upload-stemcell \
+upload-stemcell: load_bosh_creds ## Upload latest stemcell to bosh
+	bosh -n -e vbox upload-stemcell \
 		https://bosh.io/d/stemcells/bosh-warden-boshlite-ubuntu-trusty-go_agent
 
 
