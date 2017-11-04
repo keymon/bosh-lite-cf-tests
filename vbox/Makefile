@@ -10,3 +10,4 @@ help:
 
 include Makefile.bosh
 include Makefile.cf
+include Makefile.prometheus
