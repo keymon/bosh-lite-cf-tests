@@ -1,3 +1,9 @@
 [submodule "cf-deployment"]
 	path = cf-deployment
 	url = https://github.com/cloudfoundry/cf-deployment
+[submodule "bosh-deployment"]
+	path = bosh-deployment
+	url = https://github.com/cloudfoundry/bosh-deployment
+[submodule "prometheus-boshrelease"]
+	path = prometheus-boshrelease
+	url = https://github.com/cloudfoundry-community/prometheus-boshrelease
