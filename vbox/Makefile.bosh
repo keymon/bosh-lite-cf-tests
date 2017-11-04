@@ -1,0 +1,52 @@
+generated-bosh-manifest.yml: interpolate-bosh-manifest
+interpolate-bosh-manifest: ## interpolate the bosh manifest
+	bosh interpolate\
+		${PROJECT_DIR}/bosh-deployment/bosh.yml \
+		\
+		-o ${PROJECT_DIR}/bosh-deployment/virtualbox/cpi.yml \
+		-o ${PROJECT_DIR}/bosh-deployment/virtualbox/outbound-network.yml \
+		-o ${PROJECT_DIR}/bosh-deployment/bosh-lite.yml \
+		-o ${PROJECT_DIR}/bosh-deployment/bosh-lite-runc.yml \
+		-o ${PROJECT_DIR}/bosh-deployment/jumpbox-user.yml \
+		\
+		-o ./local-vm-size.yml \
+		\
+		-v director_name="Bosh Lite Director" \
+		-v internal_ip=192.168.50.6 \
+		-v internal_gw=192.168.50.1 \
+		-v internal_cidr=192.168.50.0/24 \
+		-v outbound_network_name=NatNetwork \
+        \
+		--vars-store ./generated/bosh-creds.yml \
+        \
+        > generated-bosh-manifest.yml
+
+	bosh int ./generated/bosh-creds.yml --path /admin_password > generated/bosh_admin_password
+	bosh int ./generated/bosh-creds.yml --path /director_ssl/ca > generated/bosh_ca.crt
+	bosh int ./generated/bosh-creds.yml --path /jumpbox_ssh/private_key > generated/bosh-lite.id_rsa
+
+create-env: generated-bosh-manifest.yml ## Start a bosh-lite environment on virtualbox
+	bosh create-env \
+		--state ./state.json \
+		generated-bosh-manifest.yml
+
+load_bosh_creds: ## Helper to load the bosh credentials into variables
+	$(eval export BOSH_CLIENT=admin)
+	$(eval export BOSH_CLIENT_SECRET=$(shell bosh int ./generated/bosh-creds.yml --path /admin_password))
+	$(eval export BOSH_CA_CERT=generated/bosh_ca.crt)
+
+ssh-bosh: # SSH into the BOSH vm
+	ssh -i ./generated/bosh-lite.id_rsa jumpbox@192.168.50.6
+
+configure: configure-alias configure-route ## Configure aliases, network etc.
+
+configure-alias: ## Create vbox environment
+	bosh alias-env vbox -e 192.168.50.6 --ca-cert ${CURRENT_DIR}/generated/bosh_ca.crt
+
+configure-route: ## Configure a route to the bosh-lite vms using boshlite
+ifeq ($(UNAME_S),Linux)
+	sudo ip route add   10.244.0.0/16 via 192.168.50.6
+endif
+ifeq ($(UNAME_S),Darwin)
+	sudo route add -net 10.244.0.0/16     192.168.50.6
+endif
