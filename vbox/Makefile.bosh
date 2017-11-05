@@ -26,6 +26,7 @@ interpolate-bosh-manifest: ## interpolate the bosh manifest
 	bosh int ./generated/bosh-creds.yml --path /admin_password > generated/bosh_admin_password
 	bosh int ./generated/bosh-creds.yml --path /director_ssl/ca > generated/bosh_ca.crt
 	bosh int ./generated/bosh-creds.yml --path /jumpbox_ssh/private_key > generated/bosh-lite.id_rsa
+	chmod 600 generated/bosh-lite.id_rsa
 
 bosh-create-env: generated/bosh-manifest.yml ## Start a bosh-lite environment on virtualbox
 	bosh -n create-env \
