@@ -5,6 +5,9 @@ generated/current_ip.txt:
 
 terraform_apply: terraform/.terraform terraform/backend_config.tf generated/bosh_lite.id_rsa generated/current_ip.txt ## Apply terraform
 	terraform/run-terraform.sh apply
+	terraform/run-terraform.sh output -json | \
+		jq -r 'to_entries | map( "export \(.key | ascii_upcase)=\"\(.value | .value)\"" ) | .[]' > \
+			generated/terraform_outputs_vars.sh
 
 terraform_destroy: terraform/backend_config.tf ## Destroy terraform
 	terraform/run-terraform.sh destroy
