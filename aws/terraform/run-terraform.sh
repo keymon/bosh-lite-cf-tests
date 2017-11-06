@@ -3,8 +3,8 @@ set -e -u -o pipefail
 
 cd "$(dirname "$0")"
 
-. ./terraform-common.sh
 [ -f ./terraform-vars.sh ] && . ./terraform-vars.sh
+. ./terraform-common.sh
 
 case "${1:-}" in
   init-backend)

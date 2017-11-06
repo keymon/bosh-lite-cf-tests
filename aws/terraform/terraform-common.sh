@@ -1,5 +1,5 @@
 PROJECT_ROOT=$(git rev-parse --show-toplevel)/aws/terraform
-PROJECT_NAME="bosh-lite-aws"
+PROJECT_NAME="${TF_VAR_env}-aws"
 TF_BACKEND_CONFIG="${PROJECT_ROOT}/backend_config.tf"
 
 build_docker() {
