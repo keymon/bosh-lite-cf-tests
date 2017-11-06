@@ -1,11 +1,22 @@
+.PHONY: terraform_apply terraform_destroy terraform_init terraform_init_backend
 
-terraform/backend_config.tf:
-	terraform/run-terraform.sh init-backend
+generated/current_ip.txt:
+	curl --fail -qs ifconfig.co > generated/current_ip.txt
 
-terraform_apply: terraform/backend_config.tf ## Apply terraform
-	terraform/run-terraform.sh init
+terraform_apply: terraform/.terraform terraform/backend_config.tf generated/bosh_lite.id_rsa generated/current_ip.txt ## Apply terraform
 	terraform/run-terraform.sh apply
 
 terraform_destroy: terraform/backend_config.tf ## Destroy terraform
 	terraform/run-terraform.sh destroy
 
+terraform/.terraform: terraform_init
+terraform_init:
+	terraform/run-terraform.sh init
+
+terraform/backend_config.tf: terraform_init_backend
+terraform_init_backend:
+	terraform/run-terraform.sh init-backend
+
+generated/bosh_lite.id_rsa:
+	mkdir -p generated
+	ssh-keygen -f generated/bosh_lite.id_rsa -N ''
