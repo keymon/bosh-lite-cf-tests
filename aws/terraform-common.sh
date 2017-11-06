@@ -1,5 +1,5 @@
-PROJECT_ROOT=$(git rev-parse --show-toplevel)
-PROJECT_NAME="${PROJECT_ROOT##*/}"
+PROJECT_ROOT=$(git rev-parse --show-toplevel)/aws
+PROJECT_NAME="bosh-lite-aws"
 TF_BACKEND_CONFIG="${PROJECT_ROOT}/backend_config.tf"
 
 build_docker() {

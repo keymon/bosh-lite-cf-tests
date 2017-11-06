@@ -1,0 +1,11 @@
+
+backend_config.tf:
+	./run-terraform.sh init-backend
+
+terraform_apply: backend_config.tf ## Apply terraform
+	./run-terraform.sh init
+	./run-terraform.sh apply
+
+terraform_destro: backend_config.tf ## Destroy terraform
+	./run-terraform.sh destroy
+
