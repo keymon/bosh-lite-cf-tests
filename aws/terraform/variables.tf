@@ -65,3 +65,11 @@ variable "admin_cidrs" {
   description = "CSV of CIDR addresses with access to operator/admin endpoints"
   type        = "list"
 }
+
+variable "ssh_id_rsa" {
+  description = "SSH id_rsa private key"
+}
+
+variable "ssh_id_rsa_pub" {
+  description = "SSH id_rsa public key"
+}

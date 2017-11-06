@@ -84,6 +84,14 @@ terraform {
     dynamodb_table = "${DYNAMODB_TABLE}"
   }
 }
+
+variable "terraform_state_bucket_name" {
+  default = "${BUCKET_NAME}"
+}
+
+variable "terraform_state_bucket_region" {
+  default = "${AWS_REGION}"
+}
 EOF
 
   echo "Terraform backend resources created and config has been written in ${TF_BACKEND_CONFIG}"
