@@ -1,0 +1,43 @@
+interpolate-prometheus-manifest: load_bosh_creds ## Interpolate the prometheus manifest
+	$(eval include ./generated/terraform_outputs_vars.sh)
+
+	$(eval export UAA_CLIENTS_CF_EXPORTER_SECRET=$(shell bosh int generated/cf-creds.yml --path /uaa_clients_cf_exporter_secret))
+	$(eval export UAA_CLIENTS_FIREHOSE_EXPORTER_SECRET=$(shell bosh int generated/cf-creds.yml --path /uaa_clients_firehose_exporter_secret))
+
+	$(eval export PUSH_OVER_USER_KEY=$(shell pass webs/pushover.net/user_key))
+	$(eval export ALERTMANAGER_PUSHOVER_TOKEN=$(shell pass webs/pushover.net/bosh_lite_token))
+
+	bosh -n -e aws-bosh-lite -d prometheus interpolate \
+		${PROJECT_DIR}/prometheus-boshrelease/manifests/prometheus.yml \
+		-v metrics_environment=prometheus \
+		-v skip_ssl_verify=true \
+		\
+		-o ${PROJECT_DIR}/prometheus-boshrelease/manifests/operators/enable-cf-route-registrar.yml \
+		-v metron_deployment_name=prometheus \
+		-v system_domain=bosh-lite.com \
+		\
+		-o ${PROJECT_DIR}/prometheus-boshrelease/manifests/operators/monitor-cf.yml \
+		-v uaa_clients_cf_exporter_secret="${UAA_CLIENTS_CF_EXPORTER_SECRET}" \
+		-v uaa_clients_firehose_exporter_secret="${UAA_CLIENTS_FIREHOSE_EXPORTER_SECRET}" \
+		-v traffic_controller_external_port=443 \
+		\
+		-o ${PROJECT_DIR}/prometheus-boshrelease/manifests/operators/alertmanager-pushover-receiver.yml \
+		-v alertmanager_pushover_user_key=${PUSH_OVER_USER_KEY} \
+		-v alertmanager_pushover_token=${ALERTMANAGER_PUSHOVER_TOKEN} \
+		\
+		-o ${PROJECT_DIR}/prometheus-boshrelease/manifests/operators/monitor-bosh.yml \
+		-v bosh_url=https://${BOSH_LITE_EXTERNAL_IP}:25555/ \
+		-v bosh_username="${BOSH_CLIENT}" \
+		-v bosh_password="${BOSH_CLIENT_SECRET}" \
+		--var-file bosh_ca_cert=./generated/bosh_ca.crt \
+        \
+ 		--vars-store generated/prometheus-creds.yml \
+        \
+        > generated/prometheus-manifest.yml
+
+deploy-prometheus: interpolate-prometheus-manifest ## Deploy the CF on bosh-lite
+	bosh -n -e aws-bosh-lite -d prometheus deploy \
+		generated/prometheus-manifest.yml
+
+cck-prometheus: load_bosh_creds ## Do a cloud check. Use after bosh-lite is restarted.
+	bosh -n -e aws-bosh-lite -d prometheus cck -a

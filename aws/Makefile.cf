@@ -1,0 +1,31 @@
+interpolate-cloud-config: ## Interpolate the cloudconfig from CF
+	bosh -n -e aws-bosh-lite interpolate \
+		${PROJECT_DIR}/cf-deployment/iaas-support/bosh-lite/cloud-config.yml \
+		\
+		-o ops-files/cf/cloud-config-add-default-vm.yml \
+		\
+		> generated/cloud-config.yml
+
+update-cloud-config: load_bosh_creds interpolate-cloud-config
+	bosh -n -e aws-bosh-lite update-cloud-config \
+		generated/cloud-config.yml
+
+interpolate-cf-manifest: ## Interpolate the CF manifest
+	bosh -n -e aws-bosh-lite -d cf interpolate \
+		${PROJECT_DIR}/cf-deployment/cf-deployment.yml \
+		-o ${PROJECT_DIR}/cf-deployment/operations/bosh-lite.yml \
+		-v system_domain=bosh-lite.com \
+		\
+		-o ${PROJECT_DIR}/prometheus-boshrelease/manifests/operators/cf/add-prometheus-uaa-clients.yml \
+		\
+		--vars-store generated/cf-creds.yml \
+		\
+		> generated/cf-manifest.yml
+
+deploy-cf: load_bosh_creds update-cloud-config interpolate-cf-manifest ## Deploy the CF on bosh-lite
+	bosh -n -e aws-bosh-lite -d cf deploy \
+		generated/cf-manifest.yml
+
+cck-cf: load_bosh_creds ## Do a cloud check. Use after bosh-lite is restarted.
+	bosh -n -e aws-bosh-lite -d cf cck -a
+
