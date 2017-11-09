@@ -1,0 +1,3 @@
+ - Fix ssh, it must use the same in director and the other
+ - use ssh tunnel, fix the ssl certs
+ - fix makefile dependencies

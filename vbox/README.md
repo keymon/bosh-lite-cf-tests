@@ -35,5 +35,5 @@ upload-stemcell                Upload latest stemcell to bosh
 To deploy everything:
 
 ```
-make depoy-bosh deploy-cf deploy-prometheus
+make depoy-bosh upload-stemcell deploy-cf deploy-prometheus
 ```
