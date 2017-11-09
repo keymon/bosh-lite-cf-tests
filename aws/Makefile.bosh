@@ -1,0 +1,117 @@
+deploy-bosh: bosh-create-env bosh-configure ## Deploy bosh
+
+generated/bosh-manifest.yml: bosh-interpolate-manifest
+bosh-interpolate-manifest: load_terraform_outputs ## interpolate the bosh manifest
+	bosh interpolate \
+		${PROJECT_DIR}/bosh-deployment/bosh.yml \
+		\
+		-o ${PROJECT_DIR}/bosh-deployment/aws/cpi.yml \
+		-v internal_cidr=10.0.0.0/24 \
+		-v internal_gw=10.0.0.1 \
+		-v internal_ip=10.0.0.6 \
+		-v region=${REGION} \
+		-v default_security_groups="${BOSH_SECURITY_GROUPS}" \
+		-v az=${ZONE0} \
+		-v subnet_id=${SUBNET0_ID} \
+		-v default_key_name=${SSH_KEY_PAIR_NAME} \
+		--var-file private_key=./generated/bosh_lite.id_rsa \
+		\
+		-o ops-files/bosh/aws-cloud-config-cpi-use-sts.yml \
+		\
+		-o ${PROJECT_DIR}/bosh-deployment/aws/iam-instance-profile.yml \
+		-v iam_instance_profile=${BOSH_LITE_INSTANCE_PROFILE} \
+		\
+		-o ${PROJECT_DIR}/bosh-deployment/bosh-lite.yml \
+		-o ${PROJECT_DIR}/bosh-deployment/bosh-lite-runc.yml \
+		-o ${PROJECT_DIR}/bosh-deployment/jumpbox-user.yml \
+		\
+		-o ${PROJECT_DIR}/bosh-deployment/external-ip-not-recommended.yml \
+		-o ops-files/bosh/external-ip-ssh-tunnel.yml \
+		-v external_ip=${BOSH_LITE_EXTERNAL_IP} \
+		\
+		-v director_name="Bosh Lite Director on AWS" \
+		\
+		--vars-store ./generated/bosh-creds.yml \
+		\
+		> generated/bosh-manifest.yml
+
+	bosh int ./generated/bosh-creds.yml --path /admin_password > generated/bosh_admin_password
+	bosh int ./generated/bosh-creds.yml --path /director_ssl/ca > generated/bosh_ca.crt
+	bosh int ./generated/bosh-creds.yml --path /jumpbox_ssh/private_key > generated/jumpbox-bosh-lite.id_rsa
+	chmod 600 generated/jumpbox-bosh-lite.id_rsa
+
+bosh-create-env: generated/bosh-manifest.yml ## Start a bosh-lite environment on aws
+	bosh -n create-env \
+		--state ./state.json \
+                -v access_key_id=${AWS_ACCESS_KEY_ID} \
+                -v secret_access_key=${AWS_SECRET_ACCESS_KEY} \
+                -v session_token=${AWS_SESSION_TOKEN} \
+		generated/bosh-manifest.yml
+
+bosh-delete-env: generated/bosh-manifest.yml ## Stop and delete a bosh-lite environment on aws
+	bosh -n delete-env \
+		--state ./state.json \
+                -v access_key_id=${AWS_ACCESS_KEY_ID} \
+                -v secret_access_key=${AWS_SECRET_ACCESS_KEY} \
+                -v session_token=${AWS_SESSION_TOKEN} \
+		generated/bosh-manifest.yml
+
+bosh-recreate-env: generated/bosh-manifest.yml ## Restart a bosh-lite environment on aws
+	bosh -n create-env \
+		--state ./state.json \
+                -v access_key_id=${AWS_ACCESS_KEY_ID} \
+                -v secret_access_key=${AWS_SECRET_ACCESS_KEY} \
+                -v session_token=${AWS_SESSION_TOKEN} \
+		--recreate \
+		generated/bosh-manifest.yml
+
+load_bosh_creds: ## Helper to load the bosh credentials into variables
+	$(eval export BOSH_CLIENT=admin)
+	$(eval export BOSH_CLIENT_SECRET=$(shell bosh int ./generated/bosh-creds.yml --path /admin_password))
+	$(eval export BOSH_CA_CERT=generated/bosh_ca.crt)
+
+ssh-bosh: ## SSH into the BOSH vm
+	$(eval include ./generated/terraform_outputs_vars.sh)
+	ssh -i ./generated/jumpbox-bosh-lite.id_rsa jumpbox@${BOSH_LITE_EXTERNAL_IP}
+
+tunnel-bosh: ## Create a SSH tunnel  into the BOSH vm
+	$(eval include ./generated/terraform_outputs_vars.sh)
+	ssh -D 8128 -L 25555:localhost:25555 -N -i ./generated/jumpbox-bosh-lite.id_rsa jumpbox@${BOSH_LITE_EXTERNAL_IP}
+
+sleep-bosh: ## Stop the bosh lite instance to save some money
+	$(eval include ./generated/terraform_outputs_vars.sh)
+	$(eval export INSTANCE_ID=$(shell jq -r .current_vm_cid < state.json))
+	aws ec2 stop-instances \
+		--region ${REGION} \
+		--instance-ids ${INSTANCE_ID}
+
+terminate-bosh: ## Terminate the bosh lite instance and eip to save some money
+	$(eval include ./generated/terraform_outputs_vars.sh)
+	$(eval export INSTANCE_ID=$(shell jq -r .current_vm_cid < state.json))
+	aws ec2 terminate-instances \
+		--region ${REGION} \
+		--instance-ids ${INSTANCE_ID}
+	./terraform/run-terraform.sh destroy -force -target=aws_eip.bosh_lite
+
+
+wakeup-bosh: load_bosh_creds ## Start the bosh lite instance and restart the gardens/vms from the deployments
+	$(eval include ./generated/terraform_outputs_vars.sh)
+	$(eval export INSTANCE_ID=$(shell jq -r .current_vm_cid < state.json))
+	aws ec2 start-instances \
+		--region ${REGION} \
+		--instance-ids ${INSTANCE_ID}
+	echo "Waiting for the VM to start"
+	sleep 120
+	bosh -n -e aws-bosh-lite deployments --column name | \
+		xargs -n1 -I{} bosh -n -e aws-bosh-lite cck -a -d {}
+
+
+upload-stemcell: load_bosh_creds ## Upload latest stemcell to bosh
+	bosh -n -e aws-bosh-lite upload-stemcell \
+		https://bosh.io/d/stemcells/bosh-warden-boshlite-ubuntu-trusty-go_agent
+
+bosh-configure: bosh-configure-alias ## Configure aliases, network etc.
+
+bosh-configure-alias: ## Create vbox environment
+	$(eval include ./generated/terraform_outputs_vars.sh)
+	bosh alias-env aws-bosh-lite -e ${BOSH_LITE_EXTERNAL_IP} --ca-cert ${CURRENT_DIR}/generated/bosh_ca.crt

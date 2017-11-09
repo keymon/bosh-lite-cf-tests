@@ -1,0 +1,18 @@
+---
+# When deploying to AWS from a desktop using bosh2 create-env, we
+# want the aws-bosh-cpi to use session_tokens.
+
+# Use a custom bosh-aws-cpi-release with STS support.
+# See https://github.com/cloudfoundry-incubator/bosh-aws-cpi-release/pull/70
+- type: replace
+  path: /releases/name=bosh-aws-cpi?
+  value:
+    name: bosh-aws-cpi
+    version: v67.sts
+    url: https://github.com/keymon/bosh-aws-cpi-release/releases/download/sts/bosh-aws-cpi-release-v67.sts.tgz
+    sha1: 3a6715a878662d40cd42a05f36426410db1c9a99
+
+# Allow inject the session_token attribute
+- type: replace
+  path: /cloud_provider/properties/aws/session_token?
+  value: ((session_token))

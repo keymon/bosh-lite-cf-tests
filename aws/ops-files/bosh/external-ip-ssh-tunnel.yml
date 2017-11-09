@@ -1,0 +1,9 @@
+---
+- type: replace
+  path: /cloud_provider/ssh_tunnel?
+  value:
+    host: ((external_ip))
+    port: 22
+    user: vcap
+    private_key: ((private_key))
+
