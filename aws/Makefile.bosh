@@ -13,8 +13,8 @@ bosh-interpolate-manifest: load_terraform_outputs ## interpolate the bosh manife
 		-v default_security_groups=${BOSH_SECURITY_GROUPS} \
 		-v az=${ZONE0} \
 		-v subnet_id=${SUBNET0_ID} \
-		-v default_key_name=${SSH_KEY_PAIR_NAME} \
-		--var-file private_key=./generated/bosh_lite.id_rsa \
+		-v default_key_name=${VCAP_SSH_KEY_PAIR_NAME} \
+		--var-file private_key=./generated/vcap.bosh_lite.id_rsa \
 		\
 		-o ops-files/bosh/aws-cloud-config-cpi-use-sts.yml \
 		\

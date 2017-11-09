@@ -66,10 +66,10 @@ variable "admin_cidrs" {
   type        = "list"
 }
 
-variable "ssh_id_rsa" {
-  description = "SSH id_rsa private key"
+variable "vcap_ssh_id_rsa" {
+  description = "SSH id_rsa private key for vcap user"
 }
 
-variable "ssh_id_rsa_pub" {
-  description = "SSH id_rsa public key"
+variable "vcap_ssh_id_rsa_pub" {
+  description = "SSH id_rsa public key for vcap user"
 }

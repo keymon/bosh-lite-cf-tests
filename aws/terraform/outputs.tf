@@ -45,8 +45,8 @@ output "bosh_security_groups" {
   ]
 }
 
-output "ssh_key_pair_name" {
-  value = "${aws_key_pair.bosh_lite_ssh.key_name}"
+output "vcap_ssh_key_pair_name" {
+  value = "${aws_key_pair.vcap_bosh_lite_ssh.key_name}"
 }
 
 output "bosh_lite_instance_profile" {

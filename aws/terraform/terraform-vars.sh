@@ -8,5 +8,5 @@ export TF_VAR_admin_cidrs="$(
 		jq -r --arg current_ip "$current_ip" ' . += [$current_ip] | unique'
 )"
 
-export TF_VAR_ssh_id_rsa="$(cat ../generated/bosh_lite.id_rsa)"
-export TF_VAR_ssh_id_rsa_pub="$(cat ../generated/bosh_lite.id_rsa.pub)"
+export TF_VAR_vcap_ssh_id_rsa="$(cat ../generated/vcap.bosh_lite.id_rsa)"
+export TF_VAR_vcap_ssh_id_rsa_pub="$(cat ../generated/vcap.bosh_lite.id_rsa.pub)"
