@@ -18,6 +18,8 @@ cf-interpolate-manifest: ## Interpolate the CF manifest
 		\
 		-o ${PROJECT_DIR}/prometheus-boshrelease/manifests/operators/cf/add-prometheus-uaa-clients.yml \
 		\
+		-o ops-files/cf/scale-up-bosh-lite.yml \
+		\
 		--vars-store generated/cf-creds.yml \
 		\
 		> generated/cf-manifest.yml
@@ -25,3 +27,6 @@ cf-interpolate-manifest: ## Interpolate the CF manifest
 cf-deploy: load_bosh_creds update-cloud-config cf-interpolate-manifest ## Deploy the CF on bosh-lite
 	bosh -n -e aws-bosh-lite -d cf deploy \
 		generated/cf-manifest.yml
+
+cf-smoke-test: load_bosh_creds
+	bosh -e aws-bosh-lite -d cf run-errand smoke-tests
