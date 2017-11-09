@@ -10,7 +10,7 @@ update-cloud-config: load_bosh_creds interpolate-cloud-config
 	bosh -n -e aws-bosh-lite update-cloud-config \
 		generated/cloud-config.yml
 
-interpolate-cf-manifest: ## Interpolate the CF manifest
+cf-interpolate-manifest: ## Interpolate the CF manifest
 	bosh -n -e aws-bosh-lite -d cf interpolate \
 		${PROJECT_DIR}/cf-deployment/cf-deployment.yml \
 		-o ${PROJECT_DIR}/cf-deployment/operations/bosh-lite.yml \
@@ -22,10 +22,6 @@ interpolate-cf-manifest: ## Interpolate the CF manifest
 		\
 		> generated/cf-manifest.yml
 
-deploy-cf: load_bosh_creds update-cloud-config interpolate-cf-manifest ## Deploy the CF on bosh-lite
+cf-deploy: load_bosh_creds update-cloud-config cf-interpolate-manifest ## Deploy the CF on bosh-lite
 	bosh -n -e aws-bosh-lite -d cf deploy \
 		generated/cf-manifest.yml
-
-cck-cf: load_bosh_creds ## Do a cloud check. Use after bosh-lite is restarted.
-	bosh -n -e aws-bosh-lite -d cf cck -a
-

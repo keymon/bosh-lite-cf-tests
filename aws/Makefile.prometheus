@@ -1,4 +1,4 @@
-interpolate-prometheus-manifest: load_bosh_creds ## Interpolate the prometheus manifest
+prometheus-interpolate-manifest: load_bosh_creds ## Interpolate the prometheus manifest
 	$(eval include ./generated/terraform_outputs_vars.sh)
 
 	$(eval export UAA_CLIENTS_CF_EXPORTER_SECRET=$(shell bosh int generated/cf-creds.yml --path /uaa_clients_cf_exporter_secret))
@@ -35,9 +35,6 @@ interpolate-prometheus-manifest: load_bosh_creds ## Interpolate the prometheus m
         \
         > generated/prometheus-manifest.yml
 
-deploy-prometheus: interpolate-prometheus-manifest ## Deploy the CF on bosh-lite
+prometheus-deploy: prometheus-interpolate-manifest ## Deploy the CF on bosh-lite
 	bosh -n -e aws-bosh-lite -d prometheus deploy \
 		generated/prometheus-manifest.yml
-
-cck-prometheus: load_bosh_creds ## Do a cloud check. Use after bosh-lite is restarted.
-	bosh -n -e aws-bosh-lite -d prometheus cck -a

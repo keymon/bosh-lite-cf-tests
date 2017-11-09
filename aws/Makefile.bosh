@@ -1,4 +1,4 @@
-deploy-bosh: bosh-create-env bosh-configure ## Deploy bosh
+bosh-deploy: bosh-create-env bosh-configure ## Deploy bosh
 
 generated/bosh-manifest.yml: bosh-interpolate-manifest
 bosh-interpolate-manifest: load_terraform_outputs ## interpolate the bosh manifest
@@ -10,7 +10,7 @@ bosh-interpolate-manifest: load_terraform_outputs ## interpolate the bosh manife
 		-v internal_gw=10.0.0.1 \
 		-v internal_ip=10.0.0.6 \
 		-v region=${REGION} \
-		-v default_security_groups="${BOSH_SECURITY_GROUPS}" \
+		-v default_security_groups=${BOSH_SECURITY_GROUPS} \
 		-v az=${ZONE0} \
 		-v subnet_id=${SUBNET0_ID} \
 		-v default_key_name=${SSH_KEY_PAIR_NAME} \
@@ -69,44 +69,47 @@ load_bosh_creds: ## Helper to load the bosh credentials into variables
 	$(eval export BOSH_CLIENT=admin)
 	$(eval export BOSH_CLIENT_SECRET=$(shell bosh int ./generated/bosh-creds.yml --path /admin_password))
 	$(eval export BOSH_CA_CERT=generated/bosh_ca.crt)
+	$(eval export BOSH_INSTANCE_ID=$(shell jq -r .current_vm_cid < state.json))
 
-ssh-bosh: ## SSH into the BOSH vm
+bosh-ssh: load_terraform_outputs ## SSH into the BOSH vm
 	$(eval include ./generated/terraform_outputs_vars.sh)
 	ssh -i ./generated/jumpbox-bosh-lite.id_rsa jumpbox@${BOSH_LITE_EXTERNAL_IP}
 
-tunnel-bosh: ## Create a SSH tunnel  into the BOSH vm
-	$(eval include ./generated/terraform_outputs_vars.sh)
+bosh-tunnel: load_terraform_outputs ## Create a SSH tunnel and proxy into the BOSH vm
 	ssh -D 8128 -L 25555:localhost:25555 -N -i ./generated/jumpbox-bosh-lite.id_rsa jumpbox@${BOSH_LITE_EXTERNAL_IP}
 
-sleep-bosh: ## Stop the bosh lite instance to save some money
-	$(eval include ./generated/terraform_outputs_vars.sh)
-	$(eval export INSTANCE_ID=$(shell jq -r .current_vm_cid < state.json))
+bosh-sleep: load_bosh_creds load_terraform_outputs## Stop the bosh lite instance to save some money
 	aws ec2 stop-instances \
 		--region ${REGION} \
-		--instance-ids ${INSTANCE_ID}
+		--instance-ids ${BOSH_INSTANCE_ID}
 
-terminate-bosh: ## Terminate the bosh lite instance and eip to save some money
-	$(eval include ./generated/terraform_outputs_vars.sh)
-	$(eval export INSTANCE_ID=$(shell jq -r .current_vm_cid < state.json))
+bosh-terminate: load_bosh_creds load_terraform_outputs ## Terminate the bosh lite instance and eip to save some money
 	aws ec2 terminate-instances \
 		--region ${REGION} \
-		--instance-ids ${INSTANCE_ID}
+		--instance-ids ${BOSH_INSTANCE_ID}
 	./terraform/run-terraform.sh destroy -force -target=aws_eip.bosh_lite
 
 
-wakeup-bosh: load_bosh_creds ## Start the bosh lite instance and restart the gardens/vms from the deployments
-	$(eval include ./generated/terraform_outputs_vars.sh)
+bosh-wakeup: load_bosh_creds load_terraform_outputs ## Start the bosh lite instance and restart the gardens/vms from the deployments
 	$(eval export INSTANCE_ID=$(shell jq -r .current_vm_cid < state.json))
 	aws ec2 start-instances \
 		--region ${REGION} \
-		--instance-ids ${INSTANCE_ID}
+		--instance-ids ${BOSH_INSTANCE_ID}
 	echo "Waiting for the VM to start"
 	sleep 120
+	make bosh-cck
+
+bosh-resurrect: ## Recreate terraform stuff, bosh and do cck
+	make terraform_apply
+	make bosh-create-env
+	make bosh-cck
+
+bosh-cck: load_bosh_creds
 	bosh -n -e aws-bosh-lite deployments --column name | \
 		xargs -n1 -I{} bosh -n -e aws-bosh-lite cck -a -d {}
 
 
-upload-stemcell: load_bosh_creds ## Upload latest stemcell to bosh
+bosh-upload-stemcell: load_bosh_creds ## Upload latest stemcell to bosh
 	bosh -n -e aws-bosh-lite upload-stemcell \
 		https://bosh.io/d/stemcells/bosh-warden-boshlite-ubuntu-trusty-go_agent
 
