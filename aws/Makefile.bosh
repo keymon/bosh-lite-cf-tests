@@ -47,6 +47,7 @@ bosh-create-env: generated/bosh-manifest.yml ## Start a bosh-lite environment on
                 -v secret_access_key=${AWS_SECRET_ACCESS_KEY} \
                 -v session_token=${AWS_SESSION_TOKEN} \
 		generated/bosh-manifest.yml
+	make bosh-configure
 
 bosh-delete-env: generated/bosh-manifest.yml ## Stop and delete a bosh-lite environment on aws
 	bosh -n delete-env \
