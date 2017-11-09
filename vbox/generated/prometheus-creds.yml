@@ -1,6 +1,0 @@
-alertmanager_mesh_password: k8j6hqg46lg6jp91m0ua
-alertmanager_password: vwfc9ubeh0xynmtsar7w
-grafana_password: evti21a4s99tih3qwqf3
-grafana_secret_key: kyzkiaopgxgk5mouxbmc
-postgres_grafana_password: 4pj3ggnsi0fiwozp8idg
-prometheus_password: i8khx245chxucblprdgy
