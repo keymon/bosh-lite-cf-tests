@@ -3,11 +3,17 @@
 generated/current_ip.txt:
 	curl --fail -qs ifconfig.co > generated/current_ip.txt
 
-terraform_apply: terraform/.terraform terraform/backend_config.tf generated/bosh_lite.id_rsa generated/current_ip.txt ## Apply terraform
+terraform_apply: terraform/backend_config.tf terraform/.terraform generated/bosh_lite.id_rsa generated/current_ip.txt ## Apply terraform
 	terraform/run-terraform.sh apply
+	make terraform_outputs
+
+terraform_outputs:
 	terraform/run-terraform.sh output -json | \
-		jq -r 'to_entries | map( "export \(.key | ascii_upcase)=\"\(.value | .value)\"" ) | .[]' > \
+		jq -r "to_entries | map( \"export \(.key | ascii_upcase)='\(.value | .value)'\" ) | .[]" > \
 			generated/terraform_outputs_vars.sh
+
+load_terraform_outputs:
+	$(eval include ./generated/terraform_outputs_vars.sh)
 
 terraform_destroy: terraform/backend_config.tf ## Destroy terraform
 	terraform/run-terraform.sh destroy
