@@ -14,3 +14,4 @@ include Makefile.terraform
 include Makefile.bosh
 include Makefile.cf
 include Makefile.prometheus
+include Makefile.nginx

@@ -1,0 +1,14 @@
+nginx-interpolate-manifest: load_bosh_creds ## Interpolate the prometheus manifest
+	bosh -n -e aws-bosh-lite -d nginx interpolate \
+		\
+		manifests/nginx.yml \
+		-v system_domain=bosh-lite.com \
+		\
+ 		--vars-store generated/nginx-creds.yml \
+        \
+        > generated/nginx-manifest.yml
+
+nginx-deploy: nginx-interpolate-manifest ## Deploy the CF on bosh-lite
+	bosh -n -e aws-bosh-lite -d nginx deploy \
+		generated/nginx-manifest.yml
+

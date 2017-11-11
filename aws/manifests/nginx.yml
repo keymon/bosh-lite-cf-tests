@@ -1,0 +1,101 @@
+---
+name: nginx
+
+releases:
+- name: nginx
+  #version: "1.12.2"
+  #url: https://github.com/cloudfoundry-community/nginx-release/releases/download/v1.12.2/nginx-1.12.2.tgz
+  #sha1: e5e5f54d46e2a70fac85ba16e96ccb7e4148bdfa
+  version: "1.12.2+dev.9"
+  url: https://github.com/keymon/nginx-release/releases/download/1.12.2%2Bdev.9/nginx-release-1.12.2.dev.9.tar.gz
+  sha1: a3e6b1f4d327c8269d5108751da0b4e4a2733714
+
+stemcells:
+- alias: ubuntu
+  os: ubuntu-trusty
+  version: latest
+
+instance_groups:
+- name: nginx
+  instances: 1
+  azs: [ z1 ]
+  vm_type: default
+  persistent_disk_type: 1GB
+  stemcell: ubuntu
+  networks:
+  - name: default
+  jobs:
+  - name: nginx
+    release: nginx
+    properties:
+      htpasswd_users:
+      - name: bosh-lite
+        password: ((nginx_basic_auth_password))
+      ssl_key: ((nginx.private_key))
+      ssl_chained_cert: ((nginx.certificate))
+      nginx_conf: |
+        worker_processes  1;
+        error_log /var/vcap/sys/log/nginx/error.log   info;
+        events {
+          worker_connections  1024;
+        }
+        http {
+          server_tokens off;
+          server {
+            listen 80;
+            return 301 https://$host$request_uri;
+          }
+          server {
+            listen 443 default_server ssl;
+
+            ssl_certificate     /var/vcap/jobs/nginx/etc/ssl_chained.crt.pem;
+            ssl_certificate_key /var/vcap/jobs/nginx/etc/ssl.key.pem;
+            ssl_protocols       TLSv1 TLSv1.1 TLSv1.2;
+            ssl_ciphers         HIGH:!aNULL:!MD5;
+
+            set $upstream 10.244.0.34;
+
+            location / {
+              proxy_pass_request_headers on;
+              proxy_pass http://$upstream;
+              proxy_set_header X-Real-IP $remote_addr;
+              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+              proxy_set_header Host $host;
+              proxy_http_version 1.1;
+              proxy_set_header Connection "";
+              proxy_buffering off;
+              client_max_body_size 0;
+              proxy_read_timeout 36000s;
+              proxy_redirect off;
+            }
+
+            auth_basic           "Alto, santo y senha!";
+            auth_basic_user_file /var/vcap/jobs/nginx/etc/htpasswd.conf;
+          }
+        }
+update:
+  canaries: 1
+  max_in_flight: 1
+  serial: false
+  canary_watch_time: 1000-60000
+  update_watch_time: 1000-60000
+
+variables:
+- name: nginx_basic_auth_password
+  type: password
+
+- name: nginx_ca
+  type: certificate
+  options:
+    is_ca: true
+    common_name: routerCA
+
+- name: nginx
+  type: certificate
+  options:
+    ca: nginx_ca
+    common_name: routerSSL
+    alternative_names:
+    - "((system_domain))"
+    - "*.((system_domain))"
+
