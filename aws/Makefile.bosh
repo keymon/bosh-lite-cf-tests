@@ -29,6 +29,8 @@ bosh-interpolate-manifest: load_terraform_outputs ## interpolate the bosh manife
 		-o ops-files/bosh/external-ip-ssh-tunnel.yml \
 		-v external_ip=${BOSH_LITE_EXTERNAL_IP} \
 		\
+		-o ops-files/bosh/forward-port-nginx.yml \
+		\
 		-v director_name="Bosh Lite Director on AWS" \
 		\
 		--vars-store ./generated/bosh-creds.yml \

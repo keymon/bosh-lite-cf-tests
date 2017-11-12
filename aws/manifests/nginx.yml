@@ -24,6 +24,8 @@ instance_groups:
   stemcell: ubuntu
   networks:
   - name: default
+    static_ips:
+    - 10.244.3.34
   jobs:
   - name: nginx
     release: nginx

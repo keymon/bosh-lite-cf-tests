@@ -1,0 +1,26 @@
+---
+# Use the networking release to forward the ports to nginx
+- type: replace
+  path: /releases/name=networking?
+  value:
+    name: networking
+    version: 9
+    url: https://bosh.io/d/github.com/cloudfoundry/networking-release?v=9
+    sha1: 9b5f9d27917c3754e492470ac6c9af80d62963db
+
+# Add the job that redirects the ports
+- type: replace
+  path: /instance_groups/name=bosh/jobs/name=port_forwarding?
+  value:
+    name: port_forwarding
+    release: networking
+    properties:
+      networking:
+        port_forwarding:
+        - external_port: 80
+          internal_ip: 10.244.3.34
+          internal_port: 80
+        - external_port: 443
+          internal_ip: 10.244.3.34
+          internal_port: 443
+

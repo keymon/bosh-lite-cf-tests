@@ -46,4 +46,27 @@ resource "aws_security_group" "admin-access-bosh" {
   }
 }
 
+resource "aws_security_group" "allow-web-access" {
+  vpc_id      = "${aws_vpc.bosh-lite.id}"
+  name        = "${var.env}-allow-web-access"
+  description = "Allow access from allowed admin IPs to web ports: 80 and 443"
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["${formatlist("%s/32", concat(var.admin_cidrs, list(aws_eip.bosh_lite.public_ip)))}"]
+  }
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["${formatlist("%s/32", concat(var.admin_cidrs, list(aws_eip.bosh_lite.public_ip)))}"]
+  }
+
+  tags {
+    Name = "${var.env}-allow-web-access"
+  }
+}
 
