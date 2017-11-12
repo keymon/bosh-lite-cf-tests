@@ -1,6 +1,4 @@
-prometheus-interpolate-manifest: load_bosh_creds ## Interpolate the prometheus manifest
-	$(eval include ./generated/terraform_outputs_vars.sh)
-
+prometheus-interpolate-manifest: load_bosh_creds load_terraform_outputs ## Interpolate the prometheus manifest
 	$(eval export UAA_CLIENTS_CF_EXPORTER_SECRET=$(shell bosh int generated/cf-creds.yml --path /uaa_clients_cf_exporter_secret))
 	$(eval export UAA_CLIENTS_FIREHOSE_EXPORTER_SECRET=$(shell bosh int generated/cf-creds.yml --path /uaa_clients_firehose_exporter_secret))
 
@@ -10,11 +8,14 @@ prometheus-interpolate-manifest: load_bosh_creds ## Interpolate the prometheus m
 	bosh -n -e aws-bosh-lite -d prometheus interpolate \
 		${PROJECT_DIR}/prometheus-boshrelease/manifests/prometheus.yml \
 		-v metrics_environment=prometheus \
+		-v metron_deployment_name=prometheus \
 		-v skip_ssl_verify=true \
 		\
 		-o ${PROJECT_DIR}/prometheus-boshrelease/manifests/operators/enable-cf-route-registrar.yml \
-		-v metron_deployment_name=prometheus \
 		-v system_domain=bosh-lite.com \
+		\
+		-o ops-files/prometheus/register_public_domains.yml \
+		-v public_system_domain=${PUBLIC_SYSTEM_DOMAIN} \
 		\
 		-o ${PROJECT_DIR}/prometheus-boshrelease/manifests/operators/monitor-cf.yml \
 		-v uaa_clients_cf_exporter_secret="${UAA_CLIENTS_CF_EXPORTER_SECRET}" \

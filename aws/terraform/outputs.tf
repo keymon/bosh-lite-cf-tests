@@ -57,3 +57,7 @@ output "bosh_lite_instance_profile" {
 output "bosh_lite_external_ip" {
   value = "${aws_eip.bosh_lite.public_ip}"
 }
+
+output "public_system_domain" {
+  value = "${var.public_system_domain}"
+}

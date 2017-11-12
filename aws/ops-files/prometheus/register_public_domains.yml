@@ -1,0 +1,11 @@
+---
+# Route Registrar
+- type: replace
+  path: /instance_groups/name=nginx/jobs/name=route_registrar/properties/route_registrar/routes/name=alertmanager?/uris/-
+  value: alertmanager.((public_system_domain))
+- type: replace
+  path: /instance_groups/name=nginx/jobs/name=route_registrar/properties/route_registrar/routes/name=prometheus?/uris/-
+  value: prometheus.((public_system_domain))
+- type: replace
+  path: /instance_groups/name=nginx/jobs/name=route_registrar/properties/route_registrar/routes/name=grafana?/uris/-
+  value: grafana.((public_system_domain))

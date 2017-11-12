@@ -1,5 +1,9 @@
 export TF_VAR_env="${DEPLOY_ENV}"
 
+export TF_VAR_dns_zone_name="${DNS_ZONE_NAME}"
+
+export TF_VAR_public_system_domain="${PUBLIC_SYSTEM_DOMAIN}"
+
 export TF_VAR_aws_account_id="$(pass keytwine/aws/sandbox/account_id)"
 
 current_ip="$(cat ../generated/current_ip.txt)"
