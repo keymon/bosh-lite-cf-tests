@@ -29,6 +29,8 @@ bosh-interpolate-manifest: load_terraform_outputs ## interpolate the bosh manife
 		-o ops-files/bosh/external-ip-ssh-tunnel.yml \
 		-v external_ip=${BOSH_LITE_EXTERNAL_IP} \
 		\
+		-o ops-files/bosh/forward-port-nginx.yml \
+		\
 		-v director_name="Bosh Lite Director on AWS" \
 		\
 		--vars-store ./generated/bosh-creds.yml \
@@ -89,7 +91,8 @@ bosh-terminate: load_bosh_creds load_terraform_outputs ## Terminate the bosh lit
 		--region ${REGION} \
 		--instance-ids ${BOSH_INSTANCE_ID}
 	./terraform/run-terraform.sh destroy -force -target=aws_eip.bosh_lite
-
+	# Remove the creds, as all the certs would be invalid if the IP changes
+	rm -f generated/bosh-creds.yml
 
 bosh-wakeup: load_bosh_creds load_terraform_outputs ## Start the bosh lite instance and restart the gardens/vms from the deployments
 	$(eval export INSTANCE_ID=$(shell jq -r .current_vm_cid < state.json))

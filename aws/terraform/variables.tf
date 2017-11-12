@@ -3,12 +3,20 @@ variable "env" {
   default = "bosh-lite-1"
 }
 
-variable "region" {
-  default = "eu-west-1"
+variable "dns_zone_name" {
+  description = "DNS zone name where register domains"
+}
+
+variable "public_system_domain" {
+  description = "Public system domain for this deployment"
 }
 
 variable "aws_account_id" {
-    description = "Root account id"
+  description = "Root account id"
+}
+
+variable "region" {
+  default = "eu-west-1"
 }
 
 variable "vpc_cidr" {
