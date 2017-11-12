@@ -62,16 +62,9 @@ instance_groups:
 
             set $upstream 10.244.0.34;
 
-            location /poor_mans_auth {
-              auth_basic           "Alto, santo y senha!";
-              auth_basic_user_file /var/vcap/jobs/nginx/etc/htpasswd.conf;
-              add_header Set-Cookie "POOR_MANS_AUTH=((nginx_basic_auth_password));Domain=.bosh-lite-1.sandbox.keytwine.com";
-              return 301 $arg_orig;
-            }
-
             location / {
-              if ($cookie_POOR_MANS_AUTH != "((nginx_basic_auth_password))") {
-                return 301 https://$host/poor_mans_auth?orig=$scheme://$host$uri;
+              if ($host !~ "^.*\.((public_system_domain))$") {
+                return 404;
               }
               proxy_pass_request_headers on;
               proxy_pass http://$upstream;

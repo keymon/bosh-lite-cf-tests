@@ -3,6 +3,7 @@ nginx-interpolate-manifest: load_bosh_creds ## Interpolate the prometheus manife
 		\
 		manifests/nginx.yml \
 		-v system_domain=bosh-lite.com \
+                -v public_system_domain=${PUBLIC_SYSTEM_DOMAIN} \
 		\
  		--vars-store generated/nginx-creds.yml \
         \
